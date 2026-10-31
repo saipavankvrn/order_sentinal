@@ -184,7 +184,7 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
         <h2 className="text-xl font-bold text-slate-900 tracking-tight">
           Human-in-the-Loop Approval Queue & Audit Trail
         </h2>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 mt-0.5">
           Supervised operator intervention for hard rejections (Scenario 3) and append-only governance trail.
         </p>
       </div>
@@ -192,7 +192,7 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
       {/* Verification Result Banner */}
       {verificationResult && (
         <div
-          className={`p-4 rounded-lg border flex items-start space-x-3 ${
+          className={`p-4 rounded-xl border flex items-start space-x-3.5 shadow-xs ${
             verificationResult.success
               ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
               : 'bg-rose-50 border-rose-300 text-rose-900'
@@ -209,7 +209,7 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
                 ? 'Operator Decision Verified & Dispatched'
                 : 'Execution Verification Failed'}
             </div>
-            <p>{verificationResult.message}</p>
+            <p className="leading-relaxed">{verificationResult.message}</p>
             <div className="flex items-center space-x-4 pt-1 font-mono text-[11px]">
               <span>
                 Order Status:{' '}
@@ -238,16 +238,16 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
                 <div className="flex items-center space-x-2">
                   <ShieldAlert className="w-4 h-4 text-rose-600" />
                   <span>Pending Human Approvals</span>
-                  <span className="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full text-xs ml-2">
+                  <span className="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full text-xs ml-1 font-mono">
                     {pendingApprovals.length} pending
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="flex items-center bg-slate-100 p-0.5 rounded border border-slate-200">
+                  <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                     <button
                       type="button"
                       onClick={() => setApprovalScope('ALL')}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
                         approvalScope === 'ALL'
                           ? 'bg-white text-slate-900 shadow-xs'
                           : 'text-slate-500 hover:text-slate-700'
@@ -258,9 +258,9 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
                     <button
                       type="button"
                       onClick={() => setApprovalScope('DEMO')}
-                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
                         approvalScope === 'DEMO'
-                          ? 'bg-amber-500 text-white font-bold'
+                          ? 'bg-blue-600 text-white font-bold'
                           : 'text-slate-500 hover:text-slate-700'
                       }`}
                     >
@@ -270,7 +270,7 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
                   <button
                     onClick={onRefreshApprovals}
                     disabled={isLoadingApprovals}
-                    className="text-xs text-slate-500 hover:text-slate-800 flex items-center space-x-1 disabled:opacity-50"
+                    className="text-xs text-slate-600 hover:text-slate-900 flex items-center space-x-1 px-2.5 py-1 bg-white border border-slate-300 rounded-lg shadow-2xs disabled:opacity-50 font-medium"
                   >
                     <Clock className={`w-3.5 h-3.5 ${isLoadingApprovals ? 'animate-spin' : ''}`} />
                     <span>Refresh</span>
@@ -283,17 +283,17 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
             {displayedApprovals.length === 0 ? (
               <div className="py-8 text-center text-slate-400">
                 <UserCheck className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                <p className="font-medium text-slate-600 text-sm">
+                <p className="font-semibold text-slate-700 text-sm">
                   {approvalScope === 'DEMO'
                     ? 'No pending approvals in current demo session.'
                     : 'Human Approval Queue is empty.'}
                 </p>
                 <p className="text-xs text-slate-400 mt-1">
-                  Trigger "Scenario 3: Hard Rejection" from the top bar to dispatch an out-of-stock approval request.
+                  Trigger "Scenario 3: Hard Rejection" from the top bar or Live Demo workspace to dispatch an approval request.
                 </p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 {displayedApprovals.map((approval) => {
                   const form = getApprovalForm(approval);
                   const isDemo =
@@ -303,21 +303,21 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
                   return (
                     <div
                       key={approval.approval_id}
-                      className={`border rounded-lg p-5 shadow-sm space-y-4 ${
+                      className={`border rounded-xl p-5 shadow-xs space-y-4 transition ${
                         isDemo
-                          ? 'bg-amber-50/40 border-amber-300 ring-1 ring-amber-300/60'
-                          : 'bg-slate-50 border-slate-300'
+                          ? 'bg-blue-50/20 border-blue-300 ring-1 ring-blue-300/60'
+                          : 'bg-slate-50/70 border-slate-200'
                       }`}
                     >
                       {/* Top Bar */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200/80">
                         <div className="flex items-center space-x-3">
-                          <span className="text-xs font-mono font-bold text-slate-900 bg-white px-2 py-1 rounded border border-slate-300">
+                          <span className="text-xs font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-300 shadow-2xs">
                             {approval.approval_id}
                           </span>
                           {isDemo && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-white shadow-xs">
-                              LIVE DEMO ORDER
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white font-mono shadow-xs">
+                              LIVE DEMO
                             </span>
                           )}
                           <span className="text-xs text-slate-500">
@@ -336,151 +336,151 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
                         </div>
                       </div>
 
-                  {/* Context and Evidence */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    <div className="bg-white p-3 rounded border border-slate-200 space-y-1">
-                      <span className="font-bold text-slate-700 block">Failure Evidence:</span>
-                      <p className="text-slate-600">
-                        Inventory service returned HTTP 422 Unprocessable Entity (OUT_OF_STOCK).
-                        Automatic retry was prohibited by policy.
-                      </p>
-                      <div className="text-[11px] text-slate-400 font-mono mt-1">
-                        Requested: {new Date(approval.requested_at).toLocaleString()}
-                      </div>
-                    </div>
+                      {/* Context and Evidence */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div className="bg-white p-3 rounded-lg border border-slate-200/80 space-y-1">
+                          <span className="font-bold text-slate-900 block font-mono">Failure Evidence:</span>
+                          <p className="text-slate-600 leading-relaxed">
+                            Inventory service returned HTTP 422 Unprocessable Entity (OUT_OF_STOCK).
+                            Automatic retry was prohibited by policy.
+                          </p>
+                          <div className="text-[11px] text-slate-400 font-mono mt-1">
+                            Requested: {new Date(approval.requested_at).toLocaleString()}
+                          </div>
+                        </div>
 
-                    <div className="bg-white p-3 rounded border border-slate-200 space-y-1">
-                      <span className="font-bold text-slate-700 block">Policy Rule:</span>
-                      <p className="text-slate-600">
-                        Order reallocation requires operator-supplied substitute SKU and alternate warehouse hub.
-                      </p>
-                      <div className="text-[11px] text-amber-700 font-medium mt-1">
-                        Action Type: {approval.selected_action}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Operator Form */}
-                  <div className="bg-white p-4 rounded-lg border border-slate-200 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {/* Substitute SKU */}
-                      <div>
-                        <label
-                          htmlFor="substituteSkuInput"
-                          className="block text-xs font-semibold text-slate-700 mb-1"
-                        >
-                          Substitute Product SKU <span className="text-rose-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <Layers className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                          <input
-                            id="substituteSkuInput"
-                            name="substituteSkuInput"
-                            type="text"
-                            value={form.substituteSku}
-                            onChange={(e) =>
-                              updateFormField(approval.approval_id, 'substituteSku', e.target.value)
-                            }
-                            placeholder="e.g. SKU-CYBER-500-ALT"
-                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none font-mono"
-                          />
+                        <div className="bg-white p-3 rounded-lg border border-slate-200/80 space-y-1">
+                          <span className="font-bold text-slate-900 block font-mono">Policy Rule:</span>
+                          <p className="text-slate-600 leading-relaxed">
+                            Order reallocation requires operator-supplied substitute SKU and alternate warehouse hub.
+                          </p>
+                          <div className="text-[11px] text-amber-700 font-medium font-mono mt-1">
+                            Action Type: {approval.selected_action}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Alternate Warehouse Hub */}
-                      <div>
-                        <label
-                          htmlFor="alternateHubInput"
-                          className="block text-xs font-semibold text-slate-700 mb-1"
-                        >
-                          Alternate Warehouse Hub <span className="text-rose-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <Building className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                          <input
-                            id="alternateHubInput"
-                            name="alternateHubInput"
-                            type="text"
-                            value={form.alternateHub}
+                      {/* Operator Form */}
+                      <div className="bg-white p-4 rounded-xl border border-slate-200/90 space-y-3.5">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {/* Substitute SKU */}
+                          <div>
+                            <label
+                              htmlFor="substituteSkuInput"
+                              className="block text-xs font-semibold text-slate-700 mb-1"
+                            >
+                              Substitute Product SKU <span className="text-rose-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <Layers className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                              <input
+                                id="substituteSkuInput"
+                                name="substituteSkuInput"
+                                type="text"
+                                value={form.substituteSku}
+                                onChange={(e) =>
+                                  updateFormField(approval.approval_id, 'substituteSku', e.target.value)
+                                }
+                                placeholder="e.g. SKU-CYBER-500-ALT"
+                                className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Alternate Warehouse Hub */}
+                          <div>
+                            <label
+                              htmlFor="alternateHubInput"
+                              className="block text-xs font-semibold text-slate-700 mb-1"
+                            >
+                              Alternate Warehouse Hub <span className="text-rose-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <Building className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                              <input
+                                id="alternateHubInput"
+                                name="alternateHubInput"
+                                type="text"
+                                value={form.alternateHub}
+                                onChange={(e) =>
+                                  updateFormField(approval.approval_id, 'alternateHub', e.target.value)
+                                }
+                                placeholder="e.g. HUB-EAST-02"
+                                className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Operator ID */}
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Operator ID
+                            </label>
+                            <input
+                              type="text"
+                              value={form.operatorId}
+                              onChange={(e) =>
+                                updateFormField(approval.approval_id, 'operatorId', e.target.value)
+                              }
+                              className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Operator Notes */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Operator Audit Notes & Verification Rationale
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={form.operatorNotes}
                             onChange={(e) =>
-                              updateFormField(approval.approval_id, 'alternateHub', e.target.value)
+                              updateFormField(approval.approval_id, 'operatorNotes', e.target.value)
                             }
-                            placeholder="e.g. HUB-EAST-02"
-                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none font-mono"
+                            className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                            placeholder="Rationale recorded permanently in audit trail..."
                           />
                         </div>
-                      </div>
 
-                      {/* Operator ID */}
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          Operator ID
-                        </label>
-                        <input
-                          type="text"
-                          value={form.operatorId}
-                          onChange={(e) =>
-                            updateFormField(approval.approval_id, 'operatorId', e.target.value)
-                          }
-                          className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Operator Notes */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Operator Audit Notes & Verification Rationale
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={form.operatorNotes}
-                        onChange={(e) =>
-                          updateFormField(approval.approval_id, 'operatorNotes', e.target.value)
-                        }
-                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                        placeholder="Rationale recorded permanently in audit trail..."
-                      />
-                    </div>
-
-                    {form.error && (
-                      <div className="text-xs text-rose-600 bg-rose-50 p-2 rounded border border-rose-200">
-                        {form.error}
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center justify-end space-x-3 pt-2">
-                      <button
-                        id="btn-reject"
-                        onClick={() => handleSubmitDecision(approval, 'REJECTED')}
-                        disabled={form.isSubmitting}
-                        className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded shadow-sm transition disabled:opacity-50 flex items-center space-x-1.5"
-                      >
-                        <XCircle className="w-3.5 h-3.5" />
-                        <span>Reject Order</span>
-                      </button>
-
-                      <button
-                        id="btn-approve"
-                        onClick={() => handleSubmitDecision(approval, 'APPROVED')}
-                        disabled={form.isSubmitting}
-                        className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded shadow-sm transition disabled:opacity-50 flex items-center space-x-1.5"
-                      >
-                        {form.isSubmitting ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        {form.error && (
+                          <div className="text-xs text-rose-600 bg-rose-50 p-2 rounded-lg border border-rose-200">
+                            {form.error}
+                          </div>
                         )}
-                        <span>Approve Substitution</span>
-                      </button>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-end space-x-2.5 pt-1">
+                          <button
+                            id="btn-reject"
+                            onClick={() => handleSubmitDecision(approval, 'REJECTED')}
+                            disabled={form.isSubmitting}
+                            className="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold rounded-lg transition disabled:opacity-50 flex items-center space-x-1.5"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Reject Order</span>
+                          </button>
+
+                          <button
+                            id="btn-approve"
+                            onClick={() => handleSubmitDecision(approval, 'APPROVED')}
+                            disabled={form.isSubmitting}
+                            className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-sm transition disabled:opacity-50 flex items-center space-x-1.5"
+                          >
+                            {form.isSubmitting ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            )}
+                            <span>Approve Substitution</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                  );
+                })}
+              </div>
+            )}
           </Card>
         );
       })()}
@@ -491,16 +491,16 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
           <div className="flex items-center space-x-2">
             <FileText className="w-4 h-4 text-blue-600" />
             <span>Immutable Application Audit Trail</span>
-            <span className="text-xs text-slate-500 font-normal">
-              ({totalAuditLogs} recorded events)
+            <span className="text-xs text-slate-500 font-normal font-mono">
+              ({totalAuditLogs.toLocaleString()} events recorded)
             </span>
           </div>
         }
         subtitle="Append-only log of all system transitions, AI advisories, policy decisions, and operator actions"
       >
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3 mb-4 bg-slate-50 p-3 rounded-md border border-slate-200 text-xs">
-          <div className="flex items-center space-x-1 text-slate-600 font-semibold">
+        <div className="flex flex-wrap items-center gap-3 mb-4 bg-slate-50/70 p-3 rounded-lg border border-slate-200 text-xs">
+          <div className="flex items-center space-x-1 text-slate-700 font-semibold">
             <Filter className="w-3.5 h-3.5" />
             <span>Filters:</span>
           </div>
@@ -511,7 +511,7 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
               placeholder="Order ID..."
               value={auditOrderId}
               onChange={(e) => setAuditOrderId(e.target.value)}
-              className="px-2.5 py-1 border border-slate-300 rounded font-mono text-xs w-36"
+              className="px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono text-xs w-36 bg-white"
             />
           </div>
 
@@ -521,16 +521,16 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
               placeholder="Incident ID..."
               value={auditIncidentId}
               onChange={(e) => setAuditIncidentId(e.target.value)}
-              className="px-2.5 py-1 border border-slate-300 rounded font-mono text-xs w-36"
+              className="px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono text-xs w-36 bg-white"
             />
           </div>
 
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1.5">
             <span className="text-slate-500">Actor:</span>
             <select
               value={auditActorType}
               onChange={(e) => setAuditActorType(e.target.value)}
-              className="px-2 py-1 border border-slate-300 rounded text-xs bg-white"
+              className="px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white font-mono"
             >
               {actorTypes.map((act) => (
                 <option key={act} value={act}>
@@ -543,7 +543,7 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
           <button
             onClick={handleApplyAuditFilters}
             disabled={isLoadingAudit}
-            className="px-3 py-1 bg-slate-800 text-white rounded hover:bg-slate-700 font-medium text-xs transition disabled:opacity-50 flex items-center space-x-1"
+            className="px-3.5 py-1.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-semibold text-xs transition disabled:opacity-50 flex items-center space-x-1 shadow-2xs"
           >
             {isLoadingAudit && <Loader2 className="w-3 h-3 animate-spin" />}
             <span>Apply Filters</span>
@@ -551,16 +551,16 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
         </div>
 
         {/* Audit Log Table */}
-        <div className="overflow-x-auto border border-slate-200 rounded-md">
+        <div className="overflow-x-auto border border-slate-200/90 rounded-lg">
           <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-semibold">
+            <thead className="bg-slate-50/80 text-slate-600 font-semibold">
               <tr>
-                <th className="px-3.5 py-2.5">Timestamp</th>
-                <th className="px-3.5 py-2.5">Correlation / Order ID</th>
-                <th className="px-3.5 py-2.5">Incident ID</th>
-                <th className="px-3.5 py-2.5">Event Type</th>
-                <th className="px-3.5 py-2.5">Actor</th>
-                <th className="px-3.5 py-2.5">Summary</th>
+                <th className="px-3.5 py-3 font-mono">Timestamp</th>
+                <th className="px-3.5 py-3 font-mono">Order / Correlation ID</th>
+                <th className="px-3.5 py-3 font-mono">Incident ID</th>
+                <th className="px-3.5 py-3">Event Type</th>
+                <th className="px-3.5 py-3">Actor</th>
+                <th className="px-3.5 py-3">Summary</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -572,40 +572,40 @@ export const ViewC_ApprovalsAudit: React.FC<ViewCApprovalsAuditProps> = ({
                 </tr>
               ) : (
                 auditLogs.map((log) => (
-                  <tr key={log.log_id} className="hover:bg-slate-50/80 transition">
-                    <td className="px-3.5 py-2.5 font-mono text-slate-400 text-[11px] whitespace-nowrap">
+                  <tr key={log.log_id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-3.5 py-3 font-mono text-slate-500 text-[11px] whitespace-nowrap">
                       {new Date(log.timestamp).toLocaleTimeString()}
                     </td>
-                    <td className="px-3.5 py-2.5 font-mono text-slate-700">
-                      <div>{log.order_id || '—'}</div>
+                    <td className="px-3.5 py-3 font-mono text-slate-900">
+                      <div className="font-semibold text-blue-600">{log.order_id || '—'}</div>
                       <div className="text-[10px] text-slate-400 truncate max-w-[140px]">
                         {log.correlation_id}
                       </div>
                     </td>
-                    <td className="px-3.5 py-2.5 font-mono text-slate-600 text-[11px]">
+                    <td className="px-3.5 py-3 font-mono text-slate-700 text-[11px]">
                       {log.incident_id || '—'}
                     </td>
-                    <td className="px-3.5 py-2.5 font-medium">
-                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-mono">
+                    <td className="px-3.5 py-3 font-medium">
+                      <span className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[10px] font-mono border border-slate-200">
                         {log.event_type}
                       </span>
                     </td>
-                    <td className="px-3.5 py-2.5 whitespace-nowrap">
+                    <td className="px-3.5 py-3 whitespace-nowrap">
                       <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded font-mono border ${
                           log.actor_type === 'OPERATOR'
-                            ? 'bg-purple-100 text-purple-700'
+                            ? 'bg-purple-50 text-purple-700 border-purple-200'
                             : log.actor_type === 'AI_AGENT'
-                            ? 'bg-blue-100 text-blue-700'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
                             : log.actor_type === 'SYSTEM'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-slate-100 text-slate-600'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-700 border-slate-200'
                         }`}
                       >
                         {log.actor_type}: {log.actor_id}
                       </span>
                     </td>
-                    <td className="px-3.5 py-2.5 text-slate-700 text-xs">
+                    <td className="px-3.5 py-3 text-slate-700 text-xs leading-relaxed">
                       {log.summary}
                     </td>
                   </tr>

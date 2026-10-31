@@ -18,70 +18,85 @@ export const Navigation: React.FC<NavigationProps> = ({
     {
       id: 'live-demo' as ActiveTab,
       label: 'Live Order Demonstration',
-      sublabel: 'Demo Mode',
+      badgeText: 'LIVE DEMO',
       icon: Sparkles,
-      highlight: true
+      isSpecial: true
     },
     {
       id: 'dashboard' as ActiveTab,
       label: 'Dashboard & Monitoring',
-      sublabel: 'View A',
+      badgeText: 'VIEW A',
       icon: LayoutDashboard
     },
     {
       id: 'journey' as ActiveTab,
       label: 'Order Journey & Incident RCA',
-      sublabel: 'View B',
+      badgeText: 'VIEW B',
       icon: GitFork
     },
     {
       id: 'approvals' as ActiveTab,
       label: 'Human Approval Queue & Audit',
-      sublabel: 'View C',
+      badgeText: 'VIEW C',
       icon: ShieldAlert,
-      badge: pendingApprovalsCount
+      count: pendingApprovalsCount
     }
   ];
 
   return (
-    <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div className="bg-white border-b border-slate-200/90 sticky top-16 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex space-x-1 sm:space-x-3 overflow-x-auto py-2" aria-label="Main Navigation">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+
             return (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-all ${
+                className={`group flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                   isActive
-                    ? 'border-blue-600 text-blue-600 font-semibold'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    ? tab.isSpecial
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                      : 'bg-slate-900 text-white shadow-sm'
+                    : tab.isSpecial
+                    ? 'text-blue-700 bg-blue-50/70 hover:bg-blue-100/70 border border-blue-200/80 font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                 }`}
               >
                 <Icon
-                  className={`w-4 h-4 mr-2 ${
-                    isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-500'
+                  className={`w-4 h-4 transition-colors ${
+                    isActive
+                      ? 'text-white'
+                      : tab.isSpecial
+                      ? 'text-blue-600'
+                      : 'text-slate-400 group-hover:text-slate-600'
                   }`}
                 />
                 <span>{tab.label}</span>
+
                 <span
-                  className={`ml-1.5 text-[11px] px-1.5 py-0.5 rounded font-mono ${
-                    tab.highlight
-                      ? isActive
-                        ? 'bg-amber-500 text-white font-bold'
-                        : 'bg-amber-100 text-amber-800 border border-amber-300 font-bold'
-                      : isActive
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-slate-100 text-slate-500'
+                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold uppercase ${
+                    isActive
+                      ? 'bg-white/20 text-white'
+                      : tab.isSpecial
+                      ? 'bg-blue-200/70 text-blue-900'
+                      : 'bg-slate-200/80 text-slate-600'
                   }`}
                 >
-                  {tab.sublabel}
+                  {tab.badgeText}
                 </span>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-600 text-white animate-pulse">
-                    {tab.badge}
+
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span
+                    className={`ml-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-tight ${
+                      isActive
+                        ? 'bg-rose-500 text-white'
+                        : 'bg-rose-100 text-rose-700 border border-rose-200'
+                    }`}
+                  >
+                    {tab.count}
                   </span>
                 )}
               </button>
@@ -92,4 +107,3 @@ export const Navigation: React.FC<NavigationProps> = ({
     </div>
   );
 };
-

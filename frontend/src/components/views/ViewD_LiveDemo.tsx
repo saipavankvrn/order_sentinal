@@ -10,7 +10,6 @@ import {
   Loader2,
   ShieldAlert,
   Terminal,
-  Layers,
   RotateCcw,
   Check,
   RefreshCw,
@@ -19,6 +18,7 @@ import {
   Bot
 } from 'lucide-react';
 import { Card } from '../common/Card';
+import { Badge } from '../common/Badge';
 import { api } from '../../api/client';
 import {
   Order,
@@ -227,15 +227,16 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
     }
   };
 
-  // Handle Safe Reset
+  // Handle Session Reset confirmation
   const handleConfirmReset = async () => {
     setIsResetting(true);
     try {
       await onResetSession();
       setShowResetConfirm(false);
       setSessionOrders([]);
+      setOrderAuditLogs([]);
+      setInlineApproval(null);
       setRandomOutcomeInfo(null);
-      setOrderIdInput(generateNewOrderId());
     } catch (err: any) {
       alert(`Failed to reset demo session: ${err?.message || err}`);
     } finally {
@@ -274,44 +275,44 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner: Session Context & Safe Controls */}
-      <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 sm:p-5 text-white shadow-md">
+      <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-4 sm:p-5 text-white shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start space-x-3">
-            <div className="p-2.5 bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-400">
-              <Sparkles className="w-5 h-5" />
+          <div className="flex items-start space-x-3.5">
+            <div className="p-2.5 bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-400 mt-0.5">
+              <Sparkles className="w-5 h-5 text-amber-300" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-base font-bold tracking-tight text-white">
-                  Live Demonstration Workspace
+                  Live Demonstration Cockpit
                 </h2>
-                <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500 text-slate-950 uppercase tracking-wider">
-                  Live Demo Mode
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30 uppercase tracking-wider font-mono">
+                  LIVE DEMO WORKSPACE
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-1">
                 Active Session Token:{' '}
                 <span className="font-mono text-blue-300 font-semibold">{demoSessionId}</span>
                 {' · '}
-                <span className="text-slate-300">
-                  {sessionOrders.length} demonstration order(s) created
+                <span className="text-slate-300 font-medium">
+                  {sessionOrders.length} order(s) created in this session
                 </span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             <button
               onClick={onRefresh}
-              className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 rounded transition"
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-200 border border-slate-700/80 rounded-lg transition shadow-xs"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh Status</span>
+              <span>Refresh</span>
             </button>
             <button
               onClick={() => setShowResetConfirm(true)}
               disabled={sessionOrders.length === 0}
-              className="flex items-center space-x-1.5 px-3 py-1.5 bg-rose-950/70 hover:bg-rose-900/80 text-rose-300 border border-rose-800 rounded text-xs font-medium transition disabled:opacity-40"
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/80 rounded-lg text-xs font-semibold transition disabled:opacity-40 shadow-xs"
               title="Clears ONLY orders tagged with this active demo session token. Historical database records are preserved."
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -323,8 +324,8 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
 
       {/* Reset Confirmation Modal */}
       {showResetConfirm && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in duration-150">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in duration-150">
             <div className="flex items-center space-x-3 text-rose-600 mb-3">
               <AlertTriangle className="w-6 h-6" />
               <h3 className="text-lg font-bold text-slate-900">Reset Demo Session?</h3>
@@ -334,26 +335,26 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
               <strong className="text-slate-900 font-semibold">
                 {sessionOrders.length} live demonstration order(s)
               </strong>{' '}
-              created during session <code className="font-mono text-xs text-blue-700">{demoSessionId}</code>.
+              created during session <code className="font-mono text-xs text-blue-700 bg-blue-50 px-1 py-0.5 rounded">{demoSessionId}</code>.
             </p>
-            <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded text-xs text-emerald-800 flex items-center space-x-2">
-              <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <div className="mt-3.5 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-start space-x-2">
+              <Check className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
               <span>
                 <strong>Zero Data Loss Guarantee:</strong> All pre-existing historical orders, incidents, and approvals remain safely intact.
               </span>
             </div>
-            <div className="mt-6 flex justify-end space-x-3">
+            <div className="mt-6 flex justify-end space-x-2.5">
               <button
                 onClick={() => setShowResetConfirm(false)}
                 disabled={isResetting}
-                className="px-4 py-2 border border-slate-300 rounded text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+                className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmReset}
                 disabled={isResetting}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-bold transition flex items-center space-x-1.5"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shadow-sm"
               >
                 {isResetting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>Purge Session Records</span>
@@ -363,19 +364,24 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
         </div>
       )}
 
-      {/* Main Grid: Form on Left, Active Tracker on Right */}
+      {/* Main Grid: Form on Left (5 cols), Active Tracker on Right (7 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (5 cols): Order Creation Card */}
+        {/* Left Column: Order Creation Card & Session List */}
         <div className="lg:col-span-5 space-y-6">
-          <Card className="p-5 border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <Card
+            title={
               <div className="flex items-center space-x-2">
                 <Package className="w-4 h-4 text-blue-600" />
-                <h3 className="font-bold text-slate-900 text-sm">Create Live Test Order</h3>
+                <span>Create Live Test Order</span>
               </div>
-              <span className="text-[11px] font-mono text-slate-400">Step 1 of Demonstration</span>
-            </div>
-
+            }
+            subtitle="Configure parameters to launch fresh order journey in real-time"
+            badge={
+              <span className="text-[10px] font-mono text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded font-bold">
+                STEP 1
+              </span>
+            }
+          >
             <form onSubmit={handleLaunchOrder} className="space-y-4">
               {/* Order ID with auto-generate button */}
               <div>
@@ -384,7 +390,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                   <button
                     type="button"
                     onClick={() => setOrderIdInput(generateNewOrderId())}
-                    className="text-[11px] text-blue-600 hover:text-blue-800 font-medium flex items-center space-x-1"
+                    className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold flex items-center space-x-1"
                   >
                     <RefreshCw className="w-3 h-3" />
                     <span>Regenerate ID</span>
@@ -394,7 +400,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                   type="text"
                   value={orderIdInput}
                   onChange={(e) => setOrderIdInput(e.target.value)}
-                  className="w-full font-mono text-xs px-3 py-2 border border-slate-300 rounded bg-slate-50 text-slate-800 focus:bg-white focus:ring-1 focus:ring-blue-500"
+                  className="w-full font-mono text-xs px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 focus:bg-white focus:ring-1 focus:ring-blue-500 shadow-xs"
                   required
                 />
               </div>
@@ -407,7 +413,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 border border-slate-300 rounded text-slate-800 focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-blue-500 shadow-xs"
                     required
                   />
                 </div>
@@ -418,7 +424,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                     step="0.01"
                     value={orderAmount}
                     onChange={(e) => setOrderAmount(parseFloat(e.target.value) || 0)}
-                    className="w-full text-xs px-3 py-2 border border-slate-300 rounded text-slate-800 focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-blue-500 shadow-xs"
                     required
                   />
                 </div>
@@ -431,14 +437,14 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                   type="text"
                   value={productSku}
                   onChange={(e) => setProductSku(e.target.value)}
-                  className="w-full font-mono text-xs px-3 py-2 border border-slate-300 rounded text-slate-800 focus:ring-1 focus:ring-blue-500"
+                  className="w-full font-mono text-xs px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-blue-500 shadow-xs"
                   required
                 />
               </div>
 
               {/* Scenario Selector Radio Cards */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-2">
                   Select Simulation Scenario
                 </label>
                 <div className="space-y-2">
@@ -446,7 +452,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                   <label
                     className={`flex items-start p-2.5 rounded-lg border cursor-pointer transition ${
                       selectedScenario === 'SCENARIO_0_CLEAN_RUN'
-                        ? 'border-emerald-500 bg-emerald-50/50 ring-1 ring-emerald-400'
+                        ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-400'
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
@@ -473,7 +479,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                   <label
                     className={`flex items-start p-2.5 rounded-lg border cursor-pointer transition ${
                       selectedScenario === 'SCENARIO_1_HTTP_503_SELF_HEAL'
-                        ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-400'
+                        ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-400'
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
@@ -500,7 +506,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                   <label
                     className={`flex items-start p-2.5 rounded-lg border cursor-pointer transition ${
                       selectedScenario === 'SCENARIO_2_SLA_DELAY'
-                        ? 'border-amber-500 bg-amber-50/50 ring-1 ring-amber-400'
+                        ? 'border-amber-500 bg-amber-50/60 ring-1 ring-amber-400'
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
@@ -527,7 +533,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                   <label
                     className={`flex items-start p-2.5 rounded-lg border cursor-pointer transition ${
                       selectedScenario === 'SCENARIO_3_HARD_REJECTION'
-                        ? 'border-rose-500 bg-rose-50/50 ring-1 ring-rose-400'
+                        ? 'border-rose-500 bg-rose-50/60 ring-1 ring-rose-400'
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
@@ -554,7 +560,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                   <label
                     className={`flex items-start p-2.5 rounded-lg border cursor-pointer transition ${
                       selectedScenario === 'RANDOM'
-                        ? 'border-purple-500 bg-purple-50/50 ring-1 ring-purple-400'
+                        ? 'border-purple-500 bg-purple-50/60 ring-1 ring-purple-400'
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
@@ -570,7 +576,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                       <div className="flex items-center space-x-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-purple-600" />
                         <span className="text-xs font-bold text-slate-900">🎲 Random Demo Mode</span>
-                        <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded font-bold">
+                        <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded font-bold font-mono">
                           PROBABILISTIC
                         </span>
                       </div>
@@ -578,16 +584,16 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                         Live random outcome based on production demo distribution:
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-mono">
-                          50% Normal
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-mono font-bold">
+                          50% Clean
                         </span>
-                        <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-mono">
+                        <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-mono font-bold">
                           25% 503 Retry
                         </span>
-                        <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-mono">
+                        <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-mono font-bold">
                           15% SLA Delay
                         </span>
-                        <span className="text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded font-mono">
+                        <span className="text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded font-mono font-bold">
                           10% Rejection
                         </span>
                       </div>
@@ -598,7 +604,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
 
               {/* Auto Resolve Toggle */}
               {selectedScenario === 'SCENARIO_1_HTTP_503_SELF_HEAL' && (
-                <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded">
+                <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
                   <div>
                     <span className="text-xs font-semibold text-slate-800 block">Auto-Execute Self-Healing</span>
                     <span className="text-[11px] text-slate-500">
@@ -615,7 +621,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
               )}
 
               {formError && (
-                <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded text-xs flex items-center space-x-1.5">
+                <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs flex items-center space-x-1.5">
                   <XCircle className="w-4 h-4 flex-shrink-0" />
                   <span>{formError}</span>
                 </div>
@@ -624,7 +630,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold text-xs shadow transition flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-sm transition flex items-center justify-center space-x-2 disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
@@ -641,43 +647,42 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
             </form>
           </Card>
 
-          {/* Session Orders Drawer List */}
-          <Card className="p-4 border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-3">
-              <div className="flex items-center space-x-1.5">
+          {/* Session Orders Drawer */}
+          <Card
+            title={
+              <div className="flex items-center space-x-2">
                 <Clock className="w-3.5 h-3.5 text-slate-500" />
-                <h4 className="text-xs font-bold text-slate-800">
-                  Live Orders in Current Session ({sessionOrders.length})
-                </h4>
+                <span>Current Session Orders ({sessionOrders.length})</span>
               </div>
-              {isLoadingSessionOrders && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />}
-            </div>
-
+            }
+            subtitle="Active orders generated in this live demonstration session"
+            action={isLoadingSessionOrders ? <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" /> : undefined}
+          >
             {sessionOrders.length === 0 ? (
-              <p className="text-xs text-slate-400 py-3 text-center italic">
-                No orders submitted yet in this session. Click "Launch Live Test Order" above to begin.
+              <p className="text-xs text-slate-400 py-4 text-center italic">
+                No orders submitted yet in this session. Configure and launch a test order above.
               </p>
             ) : (
-              <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                 {sessionOrders.map((ord) => {
                   const isSelected = activeOrder?.order_id === ord.order_id;
                   return (
                     <button
                       key={ord.order_id}
                       onClick={() => onSelectOrder(ord.order_id)}
-                      className={`w-full text-left p-2 rounded border text-xs flex items-center justify-between transition ${
+                      className={`w-full text-left p-2.5 rounded-lg border text-xs flex items-center justify-between transition ${
                         isSelected
-                          ? 'border-blue-500 bg-blue-50 text-blue-900 font-semibold'
+                          ? 'border-blue-500 bg-blue-50/70 text-blue-900 font-semibold ring-1 ring-blue-400/50'
                           : 'border-slate-200 hover:bg-slate-50 text-slate-700'
                       }`}
                     >
-                      <div className="flex items-center space-x-2">
-                        <span className="font-mono text-[11px]">{ord.order_id}</span>
-                        <span className="text-[11px] text-slate-500">{ord.customer_name}</span>
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <span className="font-mono text-[11px] font-bold text-blue-600">{ord.order_id}</span>
+                        <span className="text-[11px] text-slate-500 truncate">{ord.customer_name}</span>
                       </div>
-                      <div className="flex items-center space-x-1.5">
+                      <div className="flex items-center space-x-1.5 flex-shrink-0">
                         <span
-                          className={`text-[10px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase font-mono ${
                             ord.order_status === 'COMPLETED'
                               ? 'bg-emerald-100 text-emerald-800'
                               : ord.order_status === 'DELAYED'
@@ -699,90 +704,84 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
           </Card>
         </div>
 
-        {/* Right Column (7 cols): Active Live Order Journey Tracker & Timeline */}
+        {/* Right Column: Active Live Order Journey Tracker & Timeline */}
         <div className="lg:col-span-7 space-y-6">
           {!activeOrder ? (
             <Card className="p-12 text-center border-dashed border-2 border-slate-300">
               <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <h4 className="text-sm font-bold text-slate-700">No Live Order Selected</h4>
+              <h4 className="text-sm font-bold text-slate-800">No Live Order Selected</h4>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
                 Configure parameters on the left and click <strong>"Launch Live Test Order"</strong> to witness fresh multi-hop journey progression and recovery in real-time.
               </p>
             </Card>
           ) : (
             <>
-              {/* Active Order Header */}
-              <Card className="p-4 border-slate-200 shadow-sm bg-gradient-to-r from-slate-900 to-slate-800 text-white">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">
-                        Live Monitored Order:
-                      </span>
-                      <span className="font-mono text-sm font-bold text-blue-300">
-                        {activeOrder.order_id}
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-300 mt-1 flex items-center space-x-2">
-                      <span>{activeOrder.customer_name}</span>
-                      <span>·</span>
-                      <span className="font-mono text-slate-400">{activeOrder.product_sku}</span>
-                      <span>·</span>
-                      <span>${Number(activeOrder.order_amount).toFixed(2)}</span>
-                    </div>
+              {/* Active Order Summary Header */}
+              <div className="bg-[#0B1120] text-white p-4 rounded-xl border border-slate-800 shadow-sm space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs uppercase tracking-wider text-slate-400 font-mono">
+                      Active Live Order:
+                    </span>
+                    <span className="font-mono text-sm font-bold text-blue-400">
+                      {activeOrder.order_id}
+                    </span>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`text-xs px-2.5 py-1 rounded font-bold uppercase tracking-wider ${
-                        activeOrder.order_status === 'COMPLETED'
-                          ? 'bg-emerald-500 text-slate-950'
-                          : activeOrder.order_status === 'DELAYED'
-                          ? 'bg-amber-500 text-slate-950'
-                          : activeOrder.order_status === 'FAILED'
-                          ? 'bg-rose-500 text-white'
-                          : 'bg-blue-500 text-white animate-pulse'
-                      }`}
-                    >
-                      {activeOrder.order_status}
-                    </span>
-                    <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded font-mono">
+                  <div className="flex items-center space-x-2 font-mono">
+                    <span className="text-xs bg-slate-900 text-blue-300 border border-slate-700 px-2.5 py-0.5 rounded font-semibold">
                       Stage: {activeOrder.current_stage}
                     </span>
+                    <Badge
+                      variant={
+                        activeOrder.order_status === 'COMPLETED'
+                          ? 'success'
+                          : activeOrder.order_status === 'DELAYED'
+                          ? 'warning'
+                          : activeOrder.order_status === 'FAILED'
+                          ? 'danger'
+                          : 'info'
+                      }
+                      dot
+                    >
+                      {activeOrder.order_status}
+                    </Badge>
                   </div>
+                </div>
+
+                <div className="text-xs text-slate-300 flex flex-wrap items-center gap-3">
+                  <span className="font-semibold text-slate-200">{activeOrder.customer_name}</span>
+                  <span className="text-slate-600">·</span>
+                  <span className="font-mono text-slate-400">{activeOrder.product_sku}</span>
+                  <span className="text-slate-600">·</span>
+                  <span className="font-mono font-bold text-emerald-400">${Number(activeOrder.order_amount).toFixed(2)}</span>
                 </div>
 
                 {/* Random Outcome Banner if triggered */}
                 {randomOutcomeInfo && (
-                  <div className="mt-3 p-2.5 bg-purple-950/80 border border-purple-700/60 rounded text-xs text-purple-200 flex items-center space-x-2">
+                  <div className="mt-2 p-2.5 bg-purple-950/80 border border-purple-700/60 rounded-lg text-xs text-purple-200 flex items-center space-x-2 font-mono">
                     <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
                     <div>
                       <span className="font-bold text-white uppercase mr-1">
-                        🎲 Random Outcome:
+                        🎲 Selected Random Outcome:
                       </span>
                       <span>{randomOutcomeInfo.reason}</span>
                     </div>
                   </div>
                 )}
-              </Card>
+              </div>
 
-              {/* 7-Stage Live Progression Stepper */}
-              <Card className="p-4 border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                  <div className="flex items-center space-x-2">
-                    <Layers className="w-4 h-4 text-blue-600" />
-                    <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
-                      7-Stage Progression Stepper
-                    </h3>
-                  </div>
+              {/* 7-Stage Progression Stepper */}
+              <Card
+                title="7-Stage Order Progression Stepper"
+                subtitle="Live status, telemetry latency, and HTTP response codes"
+                action={
                   <div className="flex items-center space-x-2">
                     {isLoadingJourney && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />}
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      Polling interval: 3.0s
-                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono">Poll: 3.0s</span>
                   </div>
-                </div>
-
+                }
+              >
                 <div className="space-y-2">
                   {stageNamesOrder.map((stageName) => {
                     const stageItem = getStageItem(stageName);
@@ -832,12 +831,12 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                         <div className="flex items-center space-x-2">
                           {stageItem?.http_status && (
                             <span
-                              className={`px-1.5 py-0.2 rounded font-mono text-[10px] font-bold ${
+                              className={`px-1.5 py-0.2 rounded font-mono text-[10px] font-bold border ${
                                 stageItem.http_status === 200
-                                  ? 'bg-emerald-100 text-emerald-800'
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
                                   : stageItem.http_status === 503
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-rose-100 text-rose-800'
+                                  ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                  : 'bg-rose-100 text-rose-800 border-rose-200'
                               }`}
                             >
                               HTTP {stageItem.http_status}
@@ -845,13 +844,13 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                           )}
 
                           {stageItem?.duration_ms !== undefined && (
-                            <span className="font-mono text-[11px] text-slate-600">
+                            <span className="font-mono text-[11px] text-slate-600 font-semibold">
                               {stageItem.duration_ms}ms
                             </span>
                           )}
 
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase font-mono ${
                               isSuccess
                                 ? 'bg-emerald-600 text-white'
                                 : isProcessing
@@ -884,7 +883,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                         Human-in-the-Loop Operator Authorization Required
                       </h4>
                     </div>
-                    <span className="text-[10px] font-mono bg-rose-200 text-rose-900 px-1.5 py-0.2 rounded font-bold">
+                    <span className="text-[10px] font-mono bg-rose-200 text-rose-900 px-2 py-0.5 rounded font-bold">
                       {inlineApproval.approval_id}
                     </span>
                   </div>
@@ -902,7 +901,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                         type="text"
                         value={substituteSku}
                         onChange={(e) => setSubstituteSku(e.target.value)}
-                        className="w-full text-xs font-mono px-2.5 py-1.5 border border-slate-300 rounded bg-white"
+                        className="w-full text-xs font-mono px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white"
                         required
                       />
                     </div>
@@ -914,7 +913,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                         type="text"
                         value={alternateHub}
                         onChange={(e) => setAlternateHub(e.target.value)}
-                        className="w-full text-xs font-mono px-2.5 py-1.5 border border-slate-300 rounded bg-white"
+                        className="w-full text-xs font-mono px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white"
                         required
                       />
                     </div>
@@ -928,7 +927,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                       type="text"
                       value={operatorNotes}
                       onChange={(e) => setOperatorNotes(e.target.value)}
-                      className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded bg-white"
+                      className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white"
                     />
                   </div>
 
@@ -937,7 +936,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                       type="button"
                       onClick={() => handleInlineDecision('REJECTED')}
                       disabled={isSubmittingDecision}
-                      className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded text-xs font-semibold transition"
+                      className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-semibold transition"
                     >
                       Reject Order (Mark Failed)
                     </button>
@@ -945,7 +944,7 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                       type="button"
                       onClick={() => handleInlineDecision('APPROVED')}
                       disabled={isSubmittingDecision || !substituteSku || !alternateHub}
-                      className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-bold transition flex items-center space-x-1.5 shadow"
+                      className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shadow-sm"
                     >
                       {isSubmittingDecision && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                       <span>Approve & Verify Reallocation</span>
@@ -960,13 +959,13 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
                   <div className="flex items-start space-x-3 text-amber-900">
                     <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider">
+                      <h4 className="text-xs font-bold uppercase tracking-wider font-mono">
                         Fulfilment SLA Breach Alert
                       </h4>
                       <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                        Warehouse fulfilment stage duration (10,000ms) breached the configured SLA threshold (5,000ms). Order status transitioned to <strong>DELAYED</strong>.
+                        Warehouse fulfilment stage duration breached the configured SLA threshold (5,000ms). Order status transitioned to <strong>DELAYED</strong>.
                       </p>
-                      <div className="mt-2 text-[11px] text-amber-900 bg-amber-100 p-2 rounded">
+                      <div className="mt-2 text-[11px] text-amber-900 bg-amber-100 p-2 rounded-lg border border-amber-200">
                         <strong>Policy Engine Guard:</strong> Automatic cancellation and warehouse reassignment are strictly blocked. Non-destructive priority expedition authorized upon operator review.
                       </div>
                     </div>
@@ -976,43 +975,39 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
 
               {/* Advisory RCA Card */}
               {rcaReport && (
-                <Card className="p-4 border-blue-200 bg-blue-50/50 shadow-sm">
-                  <div className="flex items-center justify-between pb-2 border-b border-blue-200 mb-2.5">
-                    <div className="flex items-center space-x-2 text-blue-900">
-                      <Bot className="w-4 h-4 text-blue-600" />
-                      <h4 className="font-bold text-xs uppercase tracking-wider">
-                        Advisory Root Cause Analysis
-                      </h4>
+                <Card
+                  title={
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center space-x-2 text-blue-900">
+                        <Bot className="w-4 h-4 text-blue-600" />
+                        <span>Advisory Root Cause Analysis</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-mono font-bold">
+                          {rcaReport.model_source}
+                        </span>
+                        <Badge variant={rcaReport.risk_level === 'HIGH' ? 'danger' : 'success'}>
+                          Risk: {rcaReport.risk_level}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-mono font-bold">
-                        {rcaReport.model_source}
-                      </span>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                          rcaReport.risk_level === 'HIGH'
-                            ? 'bg-rose-100 text-rose-800'
-                            : 'bg-emerald-100 text-emerald-800'
-                        }`}
-                      >
-                        Risk: {rcaReport.risk_level}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-xs space-y-1.5 text-slate-800">
-                    <p className="font-semibold text-slate-900">
+                  }
+                  subtitle="Evidence-grounded diagnostic intelligence"
+                >
+                  <div className="text-xs space-y-2 text-slate-800">
+                    <p className="font-semibold text-slate-900 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                       {rcaReport.probable_root_cause}
                     </p>
                     <p className="text-[11px] text-slate-600 leading-relaxed">
                       {rcaReport.explanation}
                     </p>
-                    <div className="flex items-center space-x-3 pt-1 text-[11px]">
+                    <div className="flex items-center space-x-3 pt-1 text-[11px] font-mono">
                       <span>
-                        Recommended Action: <strong className="text-blue-700 font-mono">{rcaReport.recommended_action}</strong>
+                        Action: <strong className="text-blue-700">{rcaReport.recommended_action}</strong>
                       </span>
                       <span>·</span>
                       <span>
-                        Evidence Signals: <strong className="text-slate-700">{rcaReport.corroborating_signals_count}</strong>
+                        Signals: <strong className="text-slate-700">{rcaReport.corroborating_signals_count}</strong>
                       </span>
                     </div>
                   </div>
@@ -1020,43 +1015,44 @@ export const ViewD_LiveDemo: React.FC<ViewDLiveDemoProps> = ({
               )}
 
               {/* Live Execution Timeline */}
-              <Card className="p-4 border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <Card
+                title={
                   <div className="flex items-center space-x-2">
                     <Terminal className="w-4 h-4 text-blue-600" />
-                    <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
-                      Live Execution Timeline (Audit & Telemetry Records)
-                    </h3>
+                    <span>Live Execution Timeline</span>
                   </div>
+                }
+                subtitle="Append-only audit and telemetry stream for active order"
+                action={
                   <div className="flex items-center space-x-2">
                     {isLoadingAudit && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />}
                     <span className="text-[11px] font-mono text-slate-400">
-                      {orderAuditLogs.length} events logged
+                      {orderAuditLogs.length} events
                     </span>
                   </div>
-                </div>
-
+                }
+              >
                 {orderAuditLogs.length === 0 ? (
-                  <p className="text-xs text-slate-400 py-3 text-center italic">
+                  <p className="text-xs text-slate-400 py-4 text-center italic">
                     Awaiting recorded telemetry events...
                   </p>
                 ) : (
-                  <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                     {orderAuditLogs.map((log) => {
-                      let badgeColor = 'bg-slate-100 text-slate-700';
-                      if (log.event_type.includes('COMPLETED')) badgeColor = 'bg-emerald-100 text-emerald-800';
-                      else if (log.event_type.includes('DETECTED') || log.event_type.includes('BREACH')) badgeColor = 'bg-amber-100 text-amber-800';
-                      else if (log.event_type.includes('REJECTED') || log.event_type.includes('FAILED')) badgeColor = 'bg-rose-100 text-rose-800';
-                      else if (log.event_type.includes('RCA') || log.event_type.includes('RESOLUTION')) badgeColor = 'bg-blue-100 text-blue-800';
+                      let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+                      if (log.event_type.includes('COMPLETED')) badgeColor = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                      else if (log.event_type.includes('DETECTED') || log.event_type.includes('BREACH')) badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
+                      else if (log.event_type.includes('REJECTED') || log.event_type.includes('FAILED')) badgeColor = 'bg-rose-50 text-rose-800 border-rose-200';
+                      else if (log.event_type.includes('RCA') || log.event_type.includes('RESOLUTION')) badgeColor = 'bg-blue-50 text-blue-800 border-blue-200';
 
                       return (
                         <div
                           key={log.log_id}
-                          className="p-2.5 rounded border border-slate-200 bg-white text-xs flex items-start justify-between gap-3 shadow-xs"
+                          className="p-2.5 rounded-lg border border-slate-200/90 bg-white text-xs flex items-start justify-between gap-3 shadow-2xs hover:border-slate-300 transition"
                         >
                           <div className="space-y-1">
                             <div className="flex items-center space-x-2">
-                              <span className={`px-1.5 py-0.2 rounded font-mono text-[10px] font-bold ${badgeColor}`}>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono border ${badgeColor}`}>
                                 {log.event_type}
                               </span>
                               <span className="text-[11px] font-mono text-slate-400">
