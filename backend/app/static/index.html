@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrderFlow Sentinel — Self-Healing Order Failure Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            900: '#0F172A',
+                            800: '#1E293B',
+                            700: '#334155'
+                        },
+                        canvas: '#F8FAFC',
+                        sentinel: {
+                            blue: '#2563EB',
+                            emerald: '#10B981',
+                            amber: '#F59E0B',
+                            red: '#EF4444',
+                            purple: '#8B5CF6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
+        code, pre, .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .pulsate { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-navy-900 text-white border-b border-slate-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center shadow-md font-bold text-lg">🛡️</div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-bold text-lg tracking-tight">OrderFlow Sentinel</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30">v1.2.1 Scope Freeze</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Autonomous Self-Healing & Failure Resolution Platform</p>
+                </div>
+            </div>
+
+            <!-- Health & Connection Status -->
+            <div class="flex items-center space-x-4 text-xs">
+                <div class="flex items-center space-x-1.5 bg-slate-800/80 px-3 py-1.5 rounded-md border border-slate-700">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 pulsate"></span>
+                    <span id="backendStatusText" class="text-slate-300">Backend: ONLINE</span>
+                </div>
+                <div class="flex items-center space-x-1.5 bg-slate-800/80 px-3 py-1.5 rounded-md border border-slate-700">
+                    <span class="text-slate-400">DB:</span>
+                    <span class="text-slate-200">SQLite (WAL)</span>
+                </div>
+                <div class="flex items-center space-x-1.5 bg-slate-800/80 px-3 py-1.5 rounded-md border border-slate-700">
+                    <span class="text-slate-400">AI:</span>
+                    <span id="aiEngineStatusText" class="text-blue-300">Deterministic Fallback</span>
+                </div>
+                <a href="/docs" target="_blank" class="text-slate-300 hover:text-white underline ml-2">API Docs</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Simulation Controls Drawer Bar -->
+    <section class="bg-navy-800 text-slate-200 border-b border-slate-700 py-3">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-2 text-sm font-medium">
+                <span class="text-slate-400 uppercase tracking-wider text-xs font-semibold">Simulation Control Plane:</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <button id="btnCleanRun" onclick="triggerScenario('SCENARIO_0_CLEAN_RUN')" class="px-3.5 py-1.5 text-xs font-semibold rounded bg-slate-700 hover:bg-slate-600 text-slate-200 transition border border-slate-600 flex items-center space-x-1.5">
+                    <span>🚀</span><span>Baseline Clean Run (Scenario 0)</span>
+                </button>
+                <button id="btnScenario1" onclick="triggerScenario('SCENARIO_1_HTTP_503_SELF_HEAL')" class="px-3.5 py-1.5 text-xs font-semibold rounded bg-slate-700 hover:bg-slate-600 text-slate-200 transition border border-slate-600 flex items-center space-x-1.5">
+                    <span>⚡</span><span>Scenario 1: HTTP 503 Self-Heal</span>
+                </button>
+                <button id="btnScenario2" onclick="triggerScenario('SCENARIO_2_SLA_DELAY')" class="px-3.5 py-1.5 text-xs font-semibold rounded bg-amber-500 hover:bg-amber-600 text-navy-900 font-bold transition shadow-sm flex items-center space-x-1.5">
+                    <span>⏱️</span><span>Scenario 2: SLA Delay</span>
+                </button>
+                <button id="btnScenario3" onclick="triggerScenario('SCENARIO_3_HARD_REJECTION')" class="px-3.5 py-1.5 text-xs font-semibold rounded bg-purple-600 hover:bg-purple-700 text-white font-bold transition shadow-sm flex items-center space-x-1.5">
+                    <span>📋</span><span>Trigger Scenario 3: Hard Rejection (HITL)</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Top Alert Banner for SLA Delay (Scenario 2) -->
+        <div id="operatorAlertBanner" class="bg-amber-50 border-2 border-amber-400 rounded-xl p-5 shadow-sm hidden">
+            <div class="flex items-start justify-between">
+                <div class="flex items-start space-x-3.5">
+                    <div class="p-2.5 bg-amber-100 rounded-lg text-amber-700 text-2xl font-bold">⚠️</div>
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="text-base font-bold text-amber-900 uppercase tracking-wide">OPERATOR ALERT: Fulfilment SLA Threshold Breached</span>
+                            <span id="badgeOrderStatus" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-200 text-amber-900 border border-amber-300 pulsate">DELAYED</span>
+                            <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700 border border-slate-300">AWAITING OPERATOR INVESTIGATION</span>
+                        </div>
+                        <p id="alertSummaryText" class="text-sm text-amber-800">
+                            Downstream warehouse packaging elapsed duration <span class="font-bold text-amber-950 font-mono">10,000ms</span> exceeded configured demo SLA threshold of <span class="font-bold text-amber-950 font-mono">5,000ms</span> (<span class="font-semibold text-red-700 font-mono">+5,000ms breach</span>).
+                        </p>
+                        <div class="flex items-center space-x-4 pt-1 text-xs text-amber-800 font-medium">
+                            <span>Stage: <strong class="font-mono text-amber-950">FULFILMENT</strong></span>
+                            <span>•</span>
+                            <span>Service: <strong class="font-mono text-amber-950">fulfilment_service</strong></span>
+                            <span>•</span>
+                            <span>Policy Rule: <strong class="text-slate-900">Zero Auto-Cancellation / Reassignment</strong></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-semibold uppercase text-amber-700 tracking-wider">Severity Tier</span>
+                    <div class="text-sm font-bold text-amber-900 bg-amber-200/80 px-2.5 py-1 rounded border border-amber-300">MEDIUM (SLA)</div>
+                </div>
+            </div>
+
+            <!-- Policy Guard Notice -->
+            <div class="mt-4 pt-3 border-t border-amber-200 flex items-center justify-between text-xs text-amber-900">
+                <div class="flex items-center space-x-2">
+                    <span>🔒</span>
+                    <span class="font-medium">Policy Engine Guard: Automatic order cancellation (<code class="bg-amber-100 px-1 py-0.5 rounded font-mono">CANCEL_ORDER</code>) and warehouse reassignment (<code class="bg-amber-100 px-1 py-0.5 rounded font-mono">REASSIGN_WAREHOUSE</code>) are strictly prohibited.</span>
+                </div>
+                <span class="text-slate-600">Manual review required before priority elevation</span>
+            </div>
+        </div>
+
+        <!-- Human Approval Queue Section (Scenario 3 - Milestone 3) -->
+        <div id="humanApprovalSection" class="bg-purple-50 border-2 border-purple-400 rounded-xl p-5 shadow-sm">
+            <div class="flex items-start justify-between border-b border-purple-200 pb-3 mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-purple-200 rounded-lg text-purple-800 text-xl font-bold">🧑‍💼</div>
+                    <div>
+                        <div class="flex items-center space-x-2.5">
+                            <h2 class="text-base font-bold text-purple-950 uppercase tracking-wide">Human-in-the-Loop Approval Queue</h2>
+                            <span id="pendingApprovalCountBadge" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-purple-200 text-purple-900 border border-purple-300">1 Pending Review</span>
+                            <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-800 border border-red-300">HIGH RISK</span>
+                        </div>
+                        <p class="text-xs text-purple-800 mt-0.5">
+                            Deterministic policy forbids automatic retries on hard business rejections. Operator review and parameter authorization required.
+                        </p>
+                    </div>
+                </div>
+                <div class="text-right text-xs">
+                    <span class="text-purple-600 font-semibold">Incident Failure Code:</span>
+                    <div class="font-mono font-bold text-purple-950">HTTP_422 / OUT_OF_STOCK</div>
+                </div>
+            </div>
+
+            <!-- Approval Card Body -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <!-- Left: Incident & Evidence Details -->
+                <div class="space-y-2 bg-white/80 p-3.5 rounded-lg border border-purple-200">
+                    <div class="flex justify-between items-center text-slate-500 pb-1 border-b border-slate-100">
+                        <span>Approval ID: <strong id="approvalIdVal" class="font-mono text-purple-900">APP-PENDING</strong></span>
+                        <span>Incident: <strong id="approvalIncidentIdVal" class="font-mono text-slate-800">INC-PENDING</strong></span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-slate-700">Failure Stage:</span>
+                        <span class="font-mono font-bold text-red-700 ml-1">INVENTORY (HTTP 422 Unprocessable Entity)</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-slate-700">Depleted Primary SKU:</span>
+                        <span id="approvalOriginalSkuVal" class="font-mono text-slate-800 ml-1">SKU-CYBER-500</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-slate-700">Advisory AI Diagnosis:</span>
+                        <p id="approvalRcaExplanation" class="text-slate-700 italic mt-0.5 bg-slate-50 p-2 rounded border border-slate-200">
+                            Primary product SKU is out of stock at designated primary warehouse hub. Automatic technical retry is prohibited. Human approval required for SKU substitution and alternate hub allocation.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right: Operator Decision Form -->
+                <div class="space-y-3 bg-white/80 p-3.5 rounded-lg border border-purple-200">
+                    <div class="font-bold text-slate-800 flex items-center justify-between">
+                        <span>Authorized Action Parameters</span>
+                        <span class="text-[11px] font-normal text-slate-500">Selected Action: <code class="font-mono text-purple-900">SUBSTITUTE_SKU_AND_REALLOCATE</code></span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Substitute SKU *</label>
+                            <input id="substituteSkuInput" type="text" value="SKU-CYBER-500-ALT" class="w-full px-2.5 py-1.5 font-mono text-xs border border-slate-300 rounded focus:ring-1 focus:ring-purple-500 outline-none" />
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Alternate Warehouse Hub *</label>
+                            <input id="alternateHubInput" type="text" value="HUB-EAST-02" class="w-full px-2.5 py-1.5 font-mono text-xs border border-slate-300 rounded focus:ring-1 focus:ring-purple-500 outline-none" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Operator ID</label>
+                            <input id="operatorIdInput" type="text" value="OP-JATAYU-01" class="w-full px-2.5 py-1.5 font-mono text-xs border border-slate-300 rounded focus:ring-1 focus:ring-purple-500 outline-none" />
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Operator Justification Notes</label>
+                            <input id="operatorNotesInput" type="text" value="Verified stock replenishment at alternate hub. Safe to reallocate." class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-purple-500 outline-none" />
+                        </div>
+                    </div>
+
+                    <!-- Operator Action Buttons -->
+                    <div class="flex items-center space-x-3 pt-1">
+                        <button id="btnApproveSubstitution" onclick="submitApprovalDecision('APPROVED')" class="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-semibold text-xs transition shadow-sm flex items-center justify-center space-x-1.5">
+                            <span>✅</span><span>Approve Substitution</span>
+                        </button>
+                        <button id="btnRejectOrder" onclick="submitApprovalDecision('REJECTED')" class="py-2 px-3 bg-red-600 hover:bg-red-700 text-white rounded font-semibold text-xs transition shadow-sm flex items-center justify-center space-x-1.5">
+                            <span>❌</span><span>Reject Order</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Decision Result Banner (Populated dynamically) -->
+            <div id="approvalResultBox" class="mt-4 p-3 bg-emerald-50 border border-emerald-300 rounded-lg hidden text-xs text-emerald-900 space-y-1">
+                <div class="font-bold flex items-center space-x-1.5">
+                    <span id="approvalResultIcon">✅</span>
+                    <span id="approvalResultTitle">Decision Processed & Verified</span>
+                </div>
+                <p id="approvalResultDetails" class="font-mono text-[11px]"></p>
+            </div>
+        </div>
+
+        <!-- Two Column Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Left 2 Cols: Timing Comparison & RCA & Operator Actions -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- Card 1: Latency Benchmark & SLA Threshold Comparison -->
+                <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-lg">📊</span>
+                            <h2 class="font-bold text-slate-900">Stage Latency Benchmark vs SLA Policy</h2>
+                        </div>
+                        <span class="text-xs text-slate-500 font-mono">Policy Key: SLA_STAGE_FULFILMENT_MS</span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 mb-4 text-center">
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div class="text-xs text-slate-500 font-medium">Configured Demo SLA</div>
+                            <div id="slaThresholdVal" class="text-xl font-bold text-slate-800 font-mono mt-0.5">5,000 ms</div>
+                            <div class="text-[11px] text-slate-400">System Policy Threshold</div>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                            <div class="text-xs text-amber-700 font-medium">Observed Duration</div>
+                            <div id="observedDurationVal" class="text-xl font-bold text-amber-700 font-mono mt-0.5">10,000 ms</div>
+                            <div class="text-[11px] text-amber-600">Injected Fulfilment Delay</div>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded-lg border border-red-200">
+                            <div class="text-xs text-red-700 font-medium">Breach Delta</div>
+                            <div id="breachDeltaVal" class="text-xl font-bold text-red-600 font-mono mt-0.5">+5,000 ms</div>
+                            <div class="text-[11px] text-red-500">+100% Latency Overrun</div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Progress Bar Comparison -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-xs text-slate-500">
+                            <span>0 ms</span>
+                            <span class="font-semibold text-slate-700 font-mono">SLA Limit: 5,000ms</span>
+                            <span class="font-semibold text-red-600 font-mono">Observed: 10,000ms</span>
+                        </div>
+                        <div class="h-4 bg-slate-100 rounded-full overflow-hidden flex border border-slate-200 relative">
+                            <!-- Safe Zone (50%) -->
+                            <div class="h-full bg-emerald-500 w-1/2 flex items-center justify-center text-[10px] text-white font-semibold">Allowable SLA (5,000ms)</div>
+                            <!-- Breach Zone (50%) -->
+                            <div class="h-full bg-red-500 w-1/2 flex items-center justify-center text-[10px] text-white font-semibold">Breach (+5,000ms)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Evidence-Grounded Advisory RCA Diagnosis -->
+                <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-lg">🧠</span>
+                            <h2 class="font-bold text-slate-900">Advisory Root Cause Analysis (RCA)</h2>
+                            <span id="rcaSourceBadge" class="text-[11px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-medium border border-blue-200">Deterministic Fallback</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-xs">
+                            <span class="text-slate-500">Evidence Strength:</span>
+                            <span id="rcaEvidenceStrength" class="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">HIGH (3 Signals)</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Probable Root Cause</span>
+                            <p id="rcaRootCause" class="text-slate-800 font-medium mt-0.5 bg-slate-50 p-2.5 rounded border border-slate-200 text-xs sm:text-sm">
+                                Inventory reservation failed: Primary SKU out-of-stock at designated regional distribution warehouse hub.
+                            </p>
+                        </div>
+
+                        <div>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Observed Telemetry Evidence</span>
+                            <ul id="rcaEvidenceList" class="mt-1 space-y-1 text-xs text-slate-600 font-mono bg-slate-50 p-2.5 rounded border border-slate-200">
+                                <li>• Endpoint POST /v1/inventory/reserve returned HTTP 422 Unprocessable Entity</li>
+                                <li>• Downstream inventory service reported zero physical stock for requested SKU</li>
+                                <li>• Prior stages completed cleanly (Address validated, Payment captured: $199.99)</li>
+                            </ul>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 pt-1">
+                            <div class="p-2.5 bg-blue-50/60 rounded border border-blue-200">
+                                <span class="text-[11px] font-semibold text-blue-700 uppercase">Recommended Candidate Action</span>
+                                <div id="rcaRecommendedAction" class="text-sm font-bold text-blue-900 font-mono mt-0.5">SUBSTITUTE_SKU_AND_REALLOCATE</div>
+                            </div>
+                            <div class="p-2.5 bg-slate-50 rounded border border-slate-200">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase">Risk Tier</span>
+                                <div id="rcaRiskLevel" class="text-sm font-bold text-red-700 mt-0.5">HIGH (Human Approval Required)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Operator Resolution Actions (Scenario 2 Expedite Control) -->
+                <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-lg">⚙️</span>
+                            <h2 class="font-bold text-slate-900">Operator Resolution Controls</h2>
+                        </div>
+                        <span class="text-xs text-slate-500">Explicit Operator Authorization Required</span>
+                    </div>
+
+                    <p class="text-xs text-slate-600 mb-4">
+                        Review the advisory RCA diagnostic and choose an authorized action. Only policy-approved non-destructive actions are executable.
+                    </p>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Authorized Action: Expedite -->
+                        <button id="btnAuthorizeExpedite" onclick="executeExpediteResolution()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-2">
+                            <span>⚡</span><span>Authorize Priority Expedite (Scenario 2)</span>
+                        </button>
+
+                        <!-- Prohibited Action 1: Cancel Order (Disabled with guard) -->
+                        <button disabled title="Blocked by Policy Engine: Destructive cancellation is prohibited." class="px-4 py-2 bg-slate-100 text-slate-400 rounded-lg text-xs font-semibold cursor-not-allowed border border-slate-200 flex items-center space-x-2">
+                            <span>🔒</span><span>Cancel Order (Prohibited)</span>
+                        </button>
+
+                        <!-- Prohibited Action 2: Warehouse Reassignment (Disabled with guard) -->
+                        <button disabled title="Blocked by Policy Engine: Warehouse reassignment is prohibited for SLA delays." class="px-4 py-2 bg-slate-100 text-slate-400 rounded-lg text-xs font-semibold cursor-not-allowed border border-slate-200 flex items-center space-x-2">
+                            <span>🔒</span><span>Reassign Warehouse (Prohibited)</span>
+                        </button>
+                    </div>
+
+                    <!-- Resolution Output Banner -->
+                    <div id="resolutionResultBox" class="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg hidden text-xs text-emerald-800 space-y-1">
+                        <div class="font-bold flex items-center space-x-1.5">
+                            <span>✅</span>
+                            <span>Resolution Executed & Downstream Domain State Verified</span>
+                        </div>
+                        <p id="resolutionDetailsText" class="font-mono text-emerald-900"></p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Col: Order Context, 7-Stage Journey & Audit Trail -->
+            <div class="space-y-6">
+
+                <!-- Order Info Card -->
+                <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+                    <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">Active Order Context</h3>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Order ID:</span>
+                            <span id="orderIdText" class="font-mono font-semibold text-slate-800">ORD-DEMO-2026</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Customer:</span>
+                            <span id="customerNameText" class="font-medium text-slate-800">Sarah Connor</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Product SKU:</span>
+                            <span id="productSkuText" class="font-mono text-slate-800">SKU-CYBER-500</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Order Amount:</span>
+                            <span id="orderAmountText" class="font-semibold text-slate-800">$199.99 USD</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-1 border-t border-slate-100">
+                            <span class="text-slate-500">Current Status:</span>
+                            <span id="orderStatusBadge" class="px-2 py-0.5 rounded font-bold text-blue-800 bg-blue-100 border border-blue-300">PROCESSING</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7-Stage Interactive Journey Timeline -->
+                <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    <h3 class="font-bold text-slate-900 text-sm mb-3">7-Stage Order Journey</h3>
+                    <div id="journeyStagesList" class="space-y-2.5 text-xs">
+                        <!-- Stage 1 -->
+                        <div id="stageNode1" class="flex items-center justify-between p-2 rounded bg-emerald-50 border border-emerald-200">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-emerald-600 font-bold">✓</span>
+                                <span class="font-medium text-slate-800">1. Customer Order</span>
+                            </div>
+                            <span class="font-mono text-slate-500">120ms</span>
+                        </div>
+                        <!-- Stage 2 -->
+                        <div id="stageNode2" class="flex items-center justify-between p-2 rounded bg-emerald-50 border border-emerald-200">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-emerald-600 font-bold">✓</span>
+                                <span class="font-medium text-slate-800">2. Address Validation</span>
+                            </div>
+                            <span class="font-mono text-slate-500">150ms</span>
+                        </div>
+                        <!-- Stage 3 -->
+                        <div id="stageNode3" class="flex items-center justify-between p-2 rounded bg-emerald-50 border border-emerald-200">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-emerald-600 font-bold">✓</span>
+                                <span class="font-medium text-slate-800">3. Payment Capture</span>
+                            </div>
+                            <span class="font-mono text-slate-500">450ms</span>
+                        </div>
+                        <!-- Stage 4: Inventory -->
+                        <div id="stageNode4" class="flex items-center justify-between p-2 rounded bg-purple-50 border border-purple-300">
+                            <div class="flex items-center space-x-2">
+                                <span id="stageNode4Icon" class="text-purple-600 font-bold">⏱</span>
+                                <span id="stageNode4Title" class="font-bold text-purple-900">4. Inventory Reservation</span>
+                            </div>
+                            <span id="stageNode4Status" class="font-mono font-bold text-red-600">REJECTED (422)</span>
+                        </div>
+                        <!-- Stage 5: Fulfilment -->
+                        <div id="stageNode5" class="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-200 opacity-60">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-slate-400 font-bold">○</span>
+                                <span class="font-medium text-slate-600">5. Warehouse Fulfilment</span>
+                            </div>
+                            <span class="font-mono text-slate-400">PENDING</span>
+                        </div>
+                        <!-- Stage 6: Delivery -->
+                        <div id="stageNode6" class="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-200 opacity-60">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-slate-400 font-bold">○</span>
+                                <span class="font-medium text-slate-600">6. Logistics Dispatch</span>
+                            </div>
+                            <span class="font-mono text-slate-400">PENDING</span>
+                        </div>
+                        <!-- Stage 7: Notification -->
+                        <div id="stageNode7" class="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-200 opacity-60">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-slate-400 font-bold">○</span>
+                                <span class="font-medium text-slate-600">7. Customer Notification</span>
+                            </div>
+                            <span class="font-mono text-slate-400">PENDING</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Append-Only Audit Log Snippet -->
+                <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    <h3 class="font-bold text-slate-900 text-sm mb-3">Append-Only Audit Trail</h3>
+                    <div id="auditLogContainer" class="space-y-2 text-[11px] font-mono max-h-56 overflow-y-auto pr-1">
+                        <div class="p-2 bg-slate-50 rounded border border-slate-200">
+                            <div class="flex justify-between text-slate-400 text-[10px]">
+                                <span>SYSTEM (DETECTOR)</span>
+                                <span>+0.0s</span>
+                            </div>
+                            <div class="text-purple-800 font-semibold">INCIDENT_DETECTED</div>
+                            <div class="text-slate-600 truncate">Hard business rejection (OUT_OF_STOCK) at INVENTORY.</div>
+                        </div>
+                        <div class="p-2 bg-slate-50 rounded border border-slate-200">
+                            <div class="flex justify-between text-slate-400 text-[10px]">
+                                <span>SYSTEM (DETECTOR)</span>
+                                <span>+0.0s</span>
+                            </div>
+                            <div class="text-purple-800 font-semibold">APPROVAL_REQUESTED</div>
+                            <div class="text-slate-600 truncate">Approval queued for operator review (Risk: HIGH).</div>
+                        </div>
+                        <div class="p-2 bg-slate-50 rounded border border-slate-200">
+                            <div class="flex justify-between text-slate-400 text-[10px]">
+                                <span>AI_AGENT</span>
+                                <span>+0.1s</span>
+                            </div>
+                            <div class="text-blue-800 font-semibold">RCA_COMPLETED</div>
+                            <div class="text-slate-600 truncate">Recommended SUBSTITUTE_SKU_AND_REALLOCATE.</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            OrderFlow Sentinel &copy; 2026 Virtusa Jatayu Forward Deployed Engineer Hackathon &bull; Version 1.2.1 Scope Freeze Baseline
+        </div>
+    </footer>
+
+    <!-- Client-Side Vanilla JS Logic -->
+    <script>
+        let currentOrder = null;
+        let currentIncident = null;
+        let currentApproval = null;
+
+        // On page load, verify backend health and load pending approvals
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchHealth();
+            fetchPendingApprovals();
+        });
+
+        async function fetchHealth() {
+            try {
+                const res = await fetch('/api/v1/health');
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('backendStatusText').textContent = 'Backend: ONLINE';
+                    if (data.data.ai_engine.gemini_available) {
+                        document.getElementById('aiEngineStatusText').textContent = 'Gemini (' + data.data.ai_engine.model_configured + ')';
+                    } else {
+                        document.getElementById('aiEngineStatusText').textContent = 'Deterministic Fallback';
+                    }
+                }
+            } catch (err) {
+                document.getElementById('backendStatusText').textContent = 'Backend: DISCONNECTED';
+            }
+        }
+
+        async function fetchPendingApprovals() {
+            try {
+                const res = await fetch('/api/v1/approvals/pending');
+                const payload = await res.json();
+                if (payload.success && payload.data && payload.data.length > 0) {
+                    const app = payload.data[0];
+                    currentApproval = app;
+                    document.getElementById('pendingApprovalCountBadge').textContent = payload.data.length + ' Pending Review';
+                    document.getElementById('approvalIdVal').textContent = app.approval_id;
+                    document.getElementById('approvalIncidentIdVal').textContent = app.incident_id;
+                    if (app.order) {
+                        document.getElementById('approvalOriginalSkuVal').textContent = app.order.product_sku;
+                    }
+                    if (app.action_parameters && app.action_parameters.substitute_sku) {
+                        document.getElementById('substituteSkuInput').value = app.action_parameters.substitute_sku;
+                    }
+                    if (app.action_parameters && app.action_parameters.alternate_hub) {
+                        document.getElementById('alternateHubInput').value = app.action_parameters.alternate_hub;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function triggerScenario(scenarioKey) {
+            const btn = scenarioKey === 'SCENARIO_3_HARD_REJECTION' ? document.getElementById('btnScenario3') :
+                        scenarioKey === 'SCENARIO_2_SLA_DELAY' ? document.getElementById('btnScenario2') :
+                        scenarioKey === 'SCENARIO_1_HTTP_503_SELF_HEAL' ? document.getElementById('btnScenario1') :
+                        document.getElementById('btnCleanRun');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span>⏳</span><span>Simulating...</span>';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/v1/simulation/trigger-scenario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scenario_key: scenarioKey,
+                        customer_name: 'Sarah Connor',
+                        product_sku: 'SKU-CYBER-500',
+                        order_amount: 199.99,
+                        auto_resolve: false
+                    })
+                });
+                const payload = await res.json();
+                if (payload.success) {
+                    updateViewWithScenarioData(payload.data);
+                } else {
+                    alert('Simulation error: ' + (payload.message || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Request failed: ' + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function updateViewWithScenarioData(data) {
+            currentOrder = data.order;
+            currentIncident = data.incident;
+            currentApproval = data.approval;
+
+            // Update Order Info
+            document.getElementById('orderIdText').textContent = data.order.order_id;
+            document.getElementById('customerNameText').textContent = data.order.customer_name;
+            document.getElementById('productSkuText').textContent = data.order.product_sku;
+            document.getElementById('orderAmountText').textContent = '$' + data.order.order_amount.toFixed(2) + ' ' + data.order.currency;
+
+            // Status Badge
+            const statusBadge = document.getElementById('orderStatusBadge');
+            statusBadge.textContent = data.order.order_status;
+
+            if (data.scenario_key === 'SCENARIO_3_HARD_REJECTION') {
+                statusBadge.className = 'px-2 py-0.5 rounded font-bold text-blue-800 bg-blue-100 border border-blue-300';
+                document.getElementById('operatorAlertBanner').classList.add('hidden');
+                document.getElementById('humanApprovalSection').classList.remove('hidden');
+
+                if (data.approval) {
+                    document.getElementById('approvalIdVal').textContent = data.approval.approval_id;
+                    document.getElementById('approvalIncidentIdVal').textContent = data.approval.incident_id;
+                    document.getElementById('approvalOriginalSkuVal').textContent = data.order.product_sku;
+                    if (data.approval.action_parameters) {
+                        document.getElementById('substituteSkuInput').value = data.approval.action_parameters.substitute_sku || 'SKU-CYBER-500-ALT';
+                        document.getElementById('alternateHubInput').value = data.approval.action_parameters.alternate_hub || 'HUB-EAST-02';
+                    }
+                }
+
+                // Stage 4 Node: Rejected
+                document.getElementById('stageNode4').className = 'flex items-center justify-between p-2 rounded bg-purple-50 border border-purple-300';
+                document.getElementById('stageNode4Icon').textContent = '⏱';
+                document.getElementById('stageNode4Status').textContent = 'REJECTED (422)';
+                document.getElementById('stageNode4Status').className = 'font-mono font-bold text-red-600';
+            } else if (data.scenario_key === 'SCENARIO_2_SLA_DELAY') {
+                statusBadge.className = 'px-2 py-0.5 rounded font-bold text-amber-800 bg-amber-100 border border-amber-300';
+                document.getElementById('operatorAlertBanner').classList.remove('hidden');
+            }
+
+            // RCA
+            if (data.rca) {
+                document.getElementById('rcaRootCause').textContent = data.rca.probable_root_cause;
+                document.getElementById('rcaRecommendedAction').textContent = data.rca.recommended_action;
+                document.getElementById('rcaEvidenceStrength').textContent = data.rca.evidence_strength + ' (' + data.rca.corroborating_signals_count + ' Signals)';
+                document.getElementById('rcaSourceBadge').textContent = data.rca.model_source;
+                document.getElementById('rcaRiskLevel').textContent = data.rca.risk_level + (data.rca.risk_level === 'HIGH' ? ' (Human Approval Required)' : ' (Non-destructive)');
+                document.getElementById('rcaRiskLevel').className = data.rca.risk_level === 'HIGH' ? 'text-sm font-bold text-red-700 mt-0.5' : 'text-sm font-bold text-emerald-700 mt-0.5';
+
+                const evList = document.getElementById('rcaEvidenceList');
+                evList.innerHTML = '';
+                data.rca.observed_evidence.forEach(ev => {
+                    const li = document.createElement('li');
+                    li.textContent = '• ' + ev;
+                    evList.appendChild(li);
+                });
+            }
+
+            fetchAuditLogs(data.order.order_id);
+        }
+
+        async function submitApprovalDecision(decision) {
+            if (!currentApproval) {
+                // Fetch pending approval if not currently held
+                await fetchPendingApprovals();
+                if (!currentApproval) {
+                    alert('No pending approval request found to decide!');
+                    return;
+                }
+            }
+
+            const isApprove = decision === 'APPROVED';
+            const btn = isApprove ? document.getElementById('btnApproveSubstitution') : document.getElementById('btnRejectOrder');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span>⏳</span><span>Processing...</span>';
+            btn.disabled = true;
+
+            const subSku = document.getElementById('substituteSkuInput').value;
+            const altHub = document.getElementById('alternateHubInput').value;
+            const opId = document.getElementById('operatorIdInput').value;
+            const opNotes = document.getElementById('operatorNotesInput').value;
+
+            try {
+                const res = await fetch(`/api/v1/approvals/${currentApproval.approval_id}/decide`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        decision: decision,
+                        operator_id: opId,
+                        operator_name: 'Devin Lead',
+                        operator_notes: opNotes,
+                        selected_action: isApprove ? 'SUBSTITUTE_SKU_AND_REALLOCATE' : 'REJECT_ORDER',
+                        action_parameters: isApprove ? { substitute_sku: subSku, alternate_hub: altHub } : {}
+                    })
+                });
+
+                const payload = await res.json();
+                const resultBox = document.getElementById('approvalResultBox');
+                resultBox.classList.remove('hidden');
+
+                if (payload.success) {
+                    if (isApprove) {
+                        resultBox.className = 'mt-4 p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-xs text-emerald-900 space-y-1';
+                        document.getElementById('approvalResultIcon').textContent = '✅';
+                        document.getElementById('approvalResultTitle').textContent = 'Operator Approved — Parameter Validated & Downstream Verified';
+                        document.getElementById('approvalResultDetails').textContent = `Substituted with SKU ${subSku} at hub ${altHub}. Inventory reservation confirmed in domain store. Order continuing in PROCESSING.`;
+                        document.getElementById('orderStatusBadge').textContent = 'PROCESSING (Resuming)';
+
+                        // Stage 4 Node becomes success
+                        document.getElementById('stageNode4').className = 'flex items-center justify-between p-2 rounded bg-emerald-50 border border-emerald-200';
+                        document.getElementById('stageNode4Icon').textContent = '✓';
+                        document.getElementById('stageNode4Status').textContent = 'RESERVED (Substituted)';
+                        document.getElementById('stageNode4Status').className = 'font-mono text-slate-500';
+
+                        // Poll updated order status post background continuation
+                        setTimeout(async () => {
+                            const ordRes = await fetch('/api/v1/orders/' + currentOrder.order_id);
+                            const ordData = await ordRes.json();
+                            if (ordData.success) {
+                                document.getElementById('orderStatusBadge').textContent = ordData.data.order_status;
+                                document.getElementById('orderStatusBadge').className = 'px-2 py-0.5 rounded font-bold text-emerald-800 bg-emerald-100 border border-emerald-300';
+
+                                // Set stages 5, 6, 7 to success
+                                ['5', '6', '7'].forEach(stg => {
+                                    const node = document.getElementById('stageNode' + stg);
+                                    if (node) {
+                                        node.className = 'flex items-center justify-between p-2 rounded bg-emerald-50 border border-emerald-200';
+                                        node.querySelector('span:first-child').className = 'text-emerald-600 font-bold';
+                                        node.querySelector('span:first-child').textContent = '✓';
+                                    }
+                                });
+                            }
+                            fetchAuditLogs(currentOrder.order_id);
+                        }, 1200);
+
+                    } else {
+                        resultBox.className = 'mt-4 p-3 bg-red-50 border border-red-300 rounded-lg text-xs text-red-900 space-y-1';
+                        document.getElementById('approvalResultIcon').textContent = '❌';
+                        document.getElementById('approvalResultTitle').textContent = 'Operator Rejected — Order Marked FAILED';
+                        document.getElementById('approvalResultDetails').textContent = 'Approval request rejected by operator. Incident marked REJECTED. Order transitioned to FAILED.';
+                        document.getElementById('orderStatusBadge').textContent = 'FAILED';
+                        document.getElementById('orderStatusBadge').className = 'px-2 py-0.5 rounded font-bold text-red-800 bg-red-100 border border-red-300';
+                    }
+                    document.getElementById('pendingApprovalCountBadge').textContent = '0 Pending';
+                } else {
+                    alert('Approval error: ' + payload.message);
+                }
+            } catch (err) {
+                alert('Request failed: ' + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function executeExpediteResolution() {
+            if (!currentIncident) {
+                alert('No active incident to expedite!');
+                return;
+            }
+            const btn = document.getElementById('btnAuthorizeExpedite');
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span><span>Verifying State...</span>';
+
+            const idempKey = 'idemp_ui_' + currentOrder.order_id + '_EXPEDITE';
+
+            try {
+                const res = await fetch('/api/v1/resolutions/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        incident_id: currentIncident.incident_id,
+                        action_type: 'EXPEDITE_FULFILMENT',
+                        idempotency_key: idempKey
+                    })
+                });
+                const payload = await res.json();
+                if (payload.success) {
+                    const resBox = document.getElementById('resolutionResultBox');
+                    resBox.classList.remove('hidden');
+                    document.getElementById('resolutionDetailsText').textContent = payload.data.verification_details;
+                    document.getElementById('orderStatusBadge').textContent = 'PROCESSING (Resuming)';
+                    setTimeout(async () => {
+                        const ordRes = await fetch('/api/v1/orders/' + currentOrder.order_id);
+                        const ordData = await ordRes.json();
+                        if (ordData.success) {
+                            document.getElementById('orderStatusBadge').textContent = ordData.data.order_status;
+                            document.getElementById('orderStatusBadge').className = 'px-2 py-0.5 rounded font-bold text-emerald-800 bg-emerald-100 border border-emerald-300';
+                        }
+                        fetchAuditLogs(currentOrder.order_id);
+                    }, 1200);
+                }
+            } catch (err) {
+                alert('Request failed: ' + err.message);
+            } finally {
+                btn.innerHTML = '<span>⚡</span><span>Authorized & Verified</span>';
+            }
+        }
+
+        async function fetchAuditLogs(orderId) {
+            try {
+                const res = await fetch('/api/v1/audit?order_id=' + orderId);
+                const payload = await res.json();
+                if (payload.success && payload.data) {
+                    const cont = document.getElementById('auditLogContainer');
+                    cont.innerHTML = '';
+                    payload.data.forEach(log => {
+                        const div = document.createElement('div');
+                        div.className = 'p-2 bg-slate-50 rounded border border-slate-200';
+                        div.innerHTML = `
+                            <div class="flex justify-between text-slate-400 text-[10px]">
+                                <span>${log.actor_type} (${log.actor_id})</span>
+                                <span>${new Date(log.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                            <div class="text-slate-800 font-semibold">${log.event_type}</div>
+                            <div class="text-slate-600 truncate">${log.summary}</div>
+                        `;
+                        cont.appendChild(div);
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
